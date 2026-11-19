@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parseSettings, convertPermissions, extractClaudeImports, generateAgentsMd, convertAgent } from './convert.mjs';
+import { parseSettings, convertPermissions, extractClaudeImports, generateAgentsMd, convertAgent, commandShims, skillIds } from './convert.mjs';
 
 const settings = {
   permissions: {
@@ -140,4 +140,25 @@ test('convertAgent: unknown Claude tool throws', () => {
     () => convertAgent('---\nname: x\ndescription: "d"\ntools: Read, NotebookEdit\n---\nbody\n'),
     /NotebookEdit/,
   );
+});
+
+test('commandShims: one command per skill id with id and $ARGUMENTS', () => {
+  const shims = commandShims(['prototype', 'cut']);
+  assert.equal(shims.length, 2);
+  assert.equal(shims[0].path, '.opencode/commands/prototype.md');
+  assert.ok(shims[0].body.includes('prototype'));
+  assert.ok(shims[0].body.includes('$ARGUMENTS'));
+  assert.ok(
+    shims[0].body.includes('description: "Asks a few questions'),
+    'description quoted exactly once',
+  );
+});
+
+test('commandShims: real skill set matches .claude/skills dirs with SKILL.md', () => {
+  const ids = skillIds();
+  assert.ok(ids.includes('prototype') && ids.includes('cut'));
+  const expected = fs
+    .readdirSync('.claude/skills', { withFileTypes: true })
+    .filter(d => d.isDirectory() && fs.existsSync(`.claude/skills/${d.name}/SKILL.md`)).length;
+  assert.equal(ids.length, expected);
 });

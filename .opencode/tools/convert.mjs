@@ -148,6 +148,34 @@ function writeAgents() {
   console.log(`agents: ${files.length} written`);
 }
 
+export function skillIds(dir = '.claude/skills') {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter(d => d.isDirectory() && fs.existsSync(`${dir}/${d.name}/SKILL.md`))
+    .map(d => d.name)
+    .sort();
+}
+
+export function commandShims(ids) {
+  return ids.map(id => {
+    const raw = fs.readFileSync(`.claude/skills/${id}/SKILL.md`, 'utf8');
+    const fm = raw.split(/^---\s*$/m)[1] ?? '';
+    const desc = (/^description:\s*(.*)$/m.exec(fm)?.[1] ?? id).trim().replace(/^"|"$/g, '');
+    const body =
+      `---\ndescription: ${JSON.stringify(desc)}\n---\n\n` +
+      `Load the skill \`${id}\` with the skill tool, then follow it exactly ` +
+      `using these arguments from the user: $ARGUMENTS\n`;
+    return { path: `.opencode/commands/${id}.md`, body };
+  });
+}
+
+function writeCommands() {
+  fs.mkdirSync('.opencode/commands', { recursive: true });
+  const shims = commandShims(skillIds());
+  for (const s of shims) fs.writeFileSync(s.path, s.body);
+  console.log(`commands: ${shims.length} written`);
+}
+
 function writeOpencodeJson() {
   const rules = convertPermissions(parseSettings());
   fs.writeFileSync('opencode.json', renderOpencodeJson(rules));
