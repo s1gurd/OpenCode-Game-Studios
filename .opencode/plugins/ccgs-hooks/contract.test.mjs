@@ -35,6 +35,15 @@ test('callKey: live tool events carry id (and messageID), never callID', () => {
   assert.equal(callKey({}), '');
 });
 
+test('parseHookResult: exit 2 blocks even when stdout is permissive JSON (Claude contract)', () => {
+  assert.equal(parseHookResult({ code: 2, stdout: '{"decision":"allow"}', stderr: 'nope' }).decision, 'block');
+});
+
+test('runHook async: spawn failure resolves quietly, never crashes the plugin process', async () => {
+  const res = await runHook({ bash: 'ccgs-no-such-binary-xyz', script: 'x.sh', root: '.', input: {}, timeoutMs: 500, async: true });
+  assert.equal(res.code, 0);
+});
+
 test('parseHookSettings: 15 registrations with per-event counts', () => {
   const regs = parseHookSettings(parseSettings());
   assert.equal(regs.length, 15);
@@ -234,5 +243,5 @@ test('integration: real validate-write.sh runs clean on an ordinary file', async
     timeoutMs: 15000, async: false,
   });
   assert.equal(res.timedOut, false);
-  assert.notEqual(parseHookResult(res).decision, undefined);
+  assert.equal(parseHookResult(res).decision, 'allow');
 });

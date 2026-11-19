@@ -155,6 +155,29 @@ test('convertAgent: unknown Claude tool throws', () => {
   );
 });
 
+test('convertAgent: global deny rules appended last, so agent "* allow" cannot shadow them', () => {
+  const out = convertAgent(fs.readFileSync('.claude/agents/producer.md', 'utf8'), [
+    { action: 'shell', resource: 'rm -rf *', effect: 'deny' },
+    { action: 'read', resource: '**/.env*', effect: 'deny' },
+  ]);
+  const allowShell = out.search(/- action: shell\n +resource: "\*"\n +effect: allow/);
+  const denyRm = out.search(/- action: shell\n +resource: "rm -rf \*"\n +effect: deny/);
+  const denyEnv = out.search(/- action: read\n +resource: "\*\*\/\.env\*"\n +effect: deny/);
+  assert.ok(allowShell >= 0, 'producer gets shell * allow');
+  assert.ok(denyRm > allowShell && denyEnv > allowShell, 'agent rules are appended after global ones and last-match wins, so global denies must come last inside the file');
+});
+
+test('generated agents on disk carry the real settings.json deny rules', () => {
+  const denies = convertPermissions(parseSettings('.claude/settings.json')).filter(r => r.effect === 'deny');
+  assert.ok(denies.length >= 100);
+  const raw = fs.readFileSync('.opencode/agents/game-designer.md', 'utf8');
+  for (const r of denies.slice(0, 10)) {
+    assert.ok(raw.includes(`resource: ${JSON.stringify(r.resource)}`), `deny ${r.action} ${r.resource} missing`);
+  }
+  const effects = [...raw.matchAll(/effect: (allow|deny)/g)].map(m => m[1]);
+  assert.equal(effects.at(-1), 'deny', 'deny rules stay last');
+});
+
 test('commandShims: one command per skill id with id and $ARGUMENTS', () => {
   const shims = commandShims(['prototype', 'cut']);
   assert.equal(shims.length, 2);

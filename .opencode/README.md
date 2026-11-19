@@ -11,7 +11,7 @@ used on the same checkout.
 | Root instructions | `AGENTS.md` | generated mirror of `CLAUDE.md` (import lines moved to `opencode.json`) |
 | Always-on docs | `opencode.json` → `instructions` | extracted from the `@path` import lines in `CLAUDE.md`, incl. the engine `VERSION.md` once `/setup-engine` adds one |
 | Permissions | `opencode.json` → `permissions` | 1:1 from `.claude/settings.json` allow/deny (`Bash(`/`PowerShell(` → `shell`, `Read(`/`Edit(` → `read`/`edit`), ordered for V2 last-match-wins: catch-all `ask` first, `allow` next, `deny` last |
-| Agents | `.opencode/agents/*.md` | generated from `.claude/agents/` (49), `mode: subagent` + a full allow/deny permission matrix |
+| Agents | `.opencode/agents/*.md` | generated from `.claude/agents/` (49), `mode: subagent` + a full allow/deny permission matrix, with the global `settings.json` deny rules repeated last (V2 appends agent rules after global ones and the last match wins, so omitting them would let `* allow` shadow `rm -rf`/`.env` denies inside subagents) |
 | Skills | `.claude/skills/` (untouched) | OpenCode auto-discovers the Claude compat path |
 | Slash commands | `.opencode/commands/*.md` | one shim per skill: loads the skill and forwards `$ARGUMENTS` |
 | Hooks | `.opencode/plugins/ccgs-hooks/` | a V2 plugin that runs the same `.claude/hooks/*.sh` under the Claude hook contract, driven by `.claude/settings.json` |
@@ -35,6 +35,8 @@ Then reload OpenCode (`/reload`) or start a new session.
 - Skill frontmatter `allowed-tools:`/`model:` — OpenCode ignores them; studio skills
   run with the invoking agent's permissions. The real guards are the `ccgs-hooks`
   plugin (commit/push/write/registry validation) and `opencode.json` permissions.
+- `settings.json` `permissions.defaultMode` — no V2 equivalent; the catch-all
+  `{shell,*,ask}` rule replaces whatever defaultMode implied.
 
 ## Adapter behavior (ccgs-hooks)
 
@@ -59,6 +61,11 @@ reason, which the model sees; crashes and timeouts let the call through (same
 - `[ccgs-hooks] no .claude/settings.json here` — the plugin only acts in CCGS repos.
 - A blocked write/commit quoting `[studio hook validate-*.sh]` is a studio guard
   working as designed, not an adapter bug.
+- `.opencode/state/` (adapter log, agent transcripts) grows unbounded; delete it
+  freely — it's runtime state, gitignored, recreated on demand.
+- Hook scripts run synchronously per tool call (each spawns bash, some spawn
+  python); a runaway script child can outlive the adapter timeout by a little —
+  Windows `spawnSync` collects pipes after the kill. Annoying, not unsafe.
 
 ## Acceptance (live V2 desktop session, 2026-11-19)
 
@@ -67,9 +74,11 @@ reason, which the model sees; crashes and timeouts let the call through (same
 - `validate-commit.sh` blocked a commit of malformed `assets/data/*.json`
   before it ran (`BLOCKED ... is not valid JSON`).
 - `opencode.json` deny rules block before execution: `Remove-Item -Recurse`
-  returned `permission.rejected`, nothing was created or deleted.
+  returned `permission.rejected`, nothing was created or deleted — and the same
+  command inside a `qa-tester` subagent (whose matrix says `shell * allow`) is
+  also denied, proving the repeated global denies keep subagents at parity.
 - Subagents are audited: `production/session-logs/agent-audit.log` gains
   `Agent invoked/completed`, and a per-call transcript JSONL appears in
   `.opencode/state/agent-transcripts/` named by the tool-call id.
-- Full adapter+generator test suite: 43/43; `git status --porcelain .claude`
+- Full adapter+generator test suite: 47/47; `git status --porcelain .claude`
   clean throughout.

@@ -33,6 +33,8 @@ export function toClaudeTool(openCodeTool) {
 }
 
 export function matchReg(reg, claudeTool) {
+  // Upstream matchers in .claude/settings.json are all literal tool names or "";
+  // Claude's regex-style matchers (e.g. "mcp__*") would need translating here.
   return !reg.matcher || reg.matcher.includes(claudeTool);
 }
 
@@ -70,6 +72,8 @@ export function editTargets({ tool, input }) {
 }
 
 export function parseHookResult({ code, stdout, stderr }) {
+  // Claude contract: exit 2 blocks unconditionally, checked before stdout JSON.
+  if (code === 2) return { decision: 'block', reason: (stderr ?? '').trim() || (stdout ?? '').trim() };
   const out = (stdout ?? '').trim();
   if (out.startsWith('{')) {
     try {
@@ -84,7 +88,6 @@ export function parseHookResult({ code, stdout, stderr }) {
       /* not JSON: fall through to exit-code semantics */
     }
   }
-  if (code === 2) return { decision: 'block', reason: (stderr ?? '').trim() || out };
   if (code !== 0) return { decision: 'skip', stderr: (stderr ?? '').trim() };
   if (out) return { decision: 'allow', additionalContext: out };
   return { decision: 'allow' };
@@ -133,6 +136,9 @@ export async function runHook({ bash, script, root, input, timeoutMs, async: isA
   const stdin = JSON.stringify(input ?? {});
   if (isAsync) {
     const child = spawn(bash, [script], opts);
+    // async hooks are fire-and-forget; a spawn error (ENOENT, EPERM) must not
+    // become an unhandled 'error' event in the plugin process.
+    child.on('error', () => {});
     child.stdin.end(stdin);
     return { code: 0, stdout: '', stderr: '', timedOut: false };
   }

@@ -12,10 +12,14 @@ const INSTRUCTIONS = [
 
 const PREFIX_ACTIONS = { Bash: 'shell', PowerShell: 'shell', Read: 'read', Edit: 'edit' };
 
-let settingsCache = null;
+let settingsCache;
+let settingsCachePath;
 
 export function parseSettings(path = '.claude/settings.json') {
-  settingsCache ??= JSON.parse(fs.readFileSync(path, 'utf8'));
+  if (settingsCachePath !== path) {
+    settingsCache = JSON.parse(fs.readFileSync(path, 'utf8'));
+    settingsCachePath = path;
+  }
   return settingsCache;
 }
 
@@ -104,7 +108,7 @@ export const CLAUDE_TOOL_TO_ACTIONS = {
   Todo: [],
 };
 
-export function convertAgent(raw) {
+export function convertAgent(raw, globalDenys = []) {
   const m = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n/.exec(raw);
   if (!m) throw new Error('agent file has no frontmatter');
   const fm = {};
@@ -134,6 +138,10 @@ export function convertAgent(raw) {
     effect: allowed.has(action) ? 'allow' : 'deny',
   }));
   for (const s of list(fm.skills)) rules.push({ action: 'skill', resource: s, effect: 'allow' });
+  // Agent permission rules are appended after the global ones and V2 resolves
+  // last-match-wins, so the global deny rules must be repeated last here or the
+  // "* allow" matrix above would shadow them for every subagent.
+  for (const r of globalDenys) rules.push(r);
   const desc = JSON.stringify((fm.description ?? 'studio subagent').replace(/^"|"$/g, ''));
   const yaml = rules
     .map(r => `  - action: ${r.action}\n    resource: ${JSON.stringify(r.resource)}\n    effect: ${r.effect}`)
@@ -143,9 +151,10 @@ export function convertAgent(raw) {
 
 function writeAgents() {
   fs.mkdirSync('.opencode/agents', { recursive: true });
+  const denies = convertPermissions(parseSettings()).filter(r => r.effect === 'deny');
   const files = fs.readdirSync('.claude/agents').filter(f => f.endsWith('.md'));
   for (const f of files) {
-    fs.writeFileSync('.opencode/agents/' + f, convertAgent(fs.readFileSync('.claude/agents/' + f, 'utf8')));
+    fs.writeFileSync('.opencode/agents/' + f, convertAgent(fs.readFileSync('.claude/agents/' + f, 'utf8'), denies));
   }
   console.log(`agents: ${files.length} written`);
 }

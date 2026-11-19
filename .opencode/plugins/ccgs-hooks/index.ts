@@ -73,6 +73,8 @@ export default Plugin.define({
     // PreCompact: checkpoint before summaries; the answer never blocks.
     await ctx.session.hook('compaction', (event: any) => {
       compacted.add(event.sessionID);
+      // Let the next context call re-run SessionStart hooks with source 'compact'.
+      injected.delete(event.sessionID);
       for (const reg of regs.filter(r => r.event === 'PreCompact')) {
         void run(reg, { hook_event_name: 'PreCompact', source: 'auto', session_id: event.sessionID, cwd: root });
       }
@@ -83,8 +85,10 @@ export default Plugin.define({
       if (claude) {
         const matching = regs.filter(r => r.event === 'PreToolUse' && matchReg(r, claude));
         if (event.tool === 'patch') {
+          const targets = editTargets({ tool: event.tool, input: event.input });
+          if (!targets.length) log('[ccgs-hooks] warning: patch payload carried no "File:" targets; write guards skipped');
           for (const reg of matching) {
-            for (const target of editTargets({ tool: event.tool, input: event.input })) {
+            for (const target of targets) {
               const input = claudeInput({ event: 'PreToolUse', tool: 'edit', input: { filePath: target }, sessionID: event.sessionID, cwd: root });
               const out = await decide(reg, input);
               if (out.decision === 'block') {
@@ -118,6 +122,19 @@ export default Plugin.define({
       if (event.status !== 'completed') return;
       const claude = toClaudeTool(event.tool);
       if (claude === 'Write' || claude === 'Edit') {
+        if (event.tool === 'patch') {
+          const targets = editTargets({ tool: event.tool, input: event.input });
+          if (!targets.length) log('[ccgs-hooks] warning: patch payload carried no "File:" targets; post guards skipped');
+          for (const reg of regs.filter(r => r.event === 'PostToolUse' && matchReg(r, claude))) {
+            for (const target of targets) {
+              const input = claudeInput({ event: 'PostToolUse', tool: 'edit', input: { filePath: target }, sessionID: event.sessionID, cwd: root });
+              const out = await decide(reg, input);
+              if (out.additionalContext) log(`[ccgs-hooks ${reg.script}] ${out.additionalContext}`.slice(0, 2000));
+              note(reg, out);
+            }
+          }
+          return;
+        }
         const input = claudeInput({ event: 'PostToolUse', tool: event.tool, input: event.input, sessionID: event.sessionID, cwd: root });
         if (!input) return;
         for (const reg of regs.filter(r => r.event === 'PostToolUse' && matchReg(r, claude))) {

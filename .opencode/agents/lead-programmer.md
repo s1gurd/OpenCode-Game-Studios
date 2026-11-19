@@ -35,6 +35,396 @@ permissions:
   - action: skill
     resource: "tech-debt"
     effect: allow
+  - action: shell
+    resource: "rm -rf *"
+    effect: deny
+  - action: shell
+    resource: "rm -fr *"
+    effect: deny
+  - action: shell
+    resource: "rm -r -f *"
+    effect: deny
+  - action: shell
+    resource: "rm -f -r *"
+    effect: deny
+  - action: shell
+    resource: "rm -Rf *"
+    effect: deny
+  - action: shell
+    resource: "rm -fR *"
+    effect: deny
+  - action: shell
+    resource: "rm -rf*"
+    effect: deny
+  - action: shell
+    resource: "rm -fr*"
+    effect: deny
+  - action: shell
+    resource: "rm -Rf*"
+    effect: deny
+  - action: shell
+    resource: "rm -fR*"
+    effect: deny
+  - action: shell
+    resource: "rm -R -f *"
+    effect: deny
+  - action: shell
+    resource: "rm -f -R *"
+    effect: deny
+  - action: shell
+    resource: "rm --recursive --force*"
+    effect: deny
+  - action: shell
+    resource: "rm --force --recursive*"
+    effect: deny
+  - action: shell
+    resource: "rm -r --force*"
+    effect: deny
+  - action: shell
+    resource: "rm -R --force*"
+    effect: deny
+  - action: shell
+    resource: "rm --force -r*"
+    effect: deny
+  - action: shell
+    resource: "rm --force -R*"
+    effect: deny
+  - action: shell
+    resource: "rm --recursive -f*"
+    effect: deny
+  - action: shell
+    resource: "rm -f --recursive*"
+    effect: deny
+  - action: shell
+    resource: "git push --force*"
+    effect: deny
+  - action: shell
+    resource: "git push -f *"
+    effect: deny
+  - action: shell
+    resource: "git push *--force*"
+    effect: deny
+  - action: shell
+    resource: "git push * -f*"
+    effect: deny
+  - action: shell
+    resource: "git push * +*"
+    effect: deny
+  - action: shell
+    resource: "git * push *--force*"
+    effect: deny
+  - action: shell
+    resource: "git *push* -f*"
+    effect: deny
+  - action: shell
+    resource: "git *push* -uf*"
+    effect: deny
+  - action: shell
+    resource: "git *push* +*"
+    effect: deny
+  - action: shell
+    resource: "git reset --hard*"
+    effect: deny
+  - action: shell
+    resource: "git *reset *--hard*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -f*"
+    effect: deny
+  - action: shell
+    resource: "git clean* --force*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -df*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -dxf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -dXf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -xf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -xdf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -Xf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -Xdf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -qf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -qdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -f*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* --force*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -df*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dxf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dXf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qxf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qXf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dqxf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dxqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qdxf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qxdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xdqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xqdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dqXf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dXqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qdXf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qXdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xdqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xqdf*"
+    effect: deny
+  - action: shell
+    resource: "sudo *"
+    effect: deny
+  - action: shell
+    resource: "chmod 777*"
+    effect: deny
+  - action: read
+    resource: "**/.env*"
+    effect: deny
+  - action: edit
+    resource: "**/.env*"
+    effect: deny
+  - action: edit
+    resource: "**/*.uasset"
+    effect: deny
+  - action: edit
+    resource: "**/*.umap"
+    effect: deny
+  - action: shell
+    resource: "Remove-Item *-Recurse*"
+    effect: deny
+  - action: shell
+    resource: "Remove-Item * -r*"
+    effect: deny
+  - action: shell
+    resource: "Remove-Item -r*"
+    effect: deny
+  - action: shell
+    resource: "git push *--force*"
+    effect: deny
+  - action: shell
+    resource: "git push -f *"
+    effect: deny
+  - action: shell
+    resource: "git push * -f*"
+    effect: deny
+  - action: shell
+    resource: "git push * +*"
+    effect: deny
+  - action: shell
+    resource: "git * push *--force*"
+    effect: deny
+  - action: shell
+    resource: "git *push* -f*"
+    effect: deny
+  - action: shell
+    resource: "git *push* -uf*"
+    effect: deny
+  - action: shell
+    resource: "git *push* +*"
+    effect: deny
+  - action: shell
+    resource: "git reset --hard*"
+    effect: deny
+  - action: shell
+    resource: "git *reset *--hard*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -f*"
+    effect: deny
+  - action: shell
+    resource: "git clean* --force*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -df*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -dxf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -dXf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -xf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -xdf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -Xf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -Xdf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -qf*"
+    effect: deny
+  - action: shell
+    resource: "git clean* -qdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -f*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* --force*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -df*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dxf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dXf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qxf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qXf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dqxf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dxqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qdxf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qxdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xdqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -xqdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dqXf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -dXqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qdXf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -qXdf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xdqf*"
+    effect: deny
+  - action: shell
+    resource: "git *clean* -Xqdf*"
+    effect: deny
+  - action: shell
+    resource: "Get-Content *.env*"
+    effect: deny
+  - action: shell
+    resource: "*>.env*"
+    effect: deny
 ---
 
 
