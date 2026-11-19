@@ -6,9 +6,15 @@ import path from 'node:path';
 import { spawnSync as nodeSpawnSync } from 'node:child_process';
 import {
   parseHookSettings, toClaudeTool, matchReg, normalizePath, claudeInput,
-  editTargets, parseHookResult, findBash, runHook, writeTranscript,
+  editTargets, parseHookResult, findBash, runHook, writeTranscript, callKey,
 } from './contract.mjs';
 import { parseSettings } from '../../tools/convert.mjs';
+
+test('toClaudeTool: the live runtime names the shell tool "shell", not only "bash"', () => {
+  assert.equal(toClaudeTool('bash'), 'Bash');
+  assert.equal(toClaudeTool('shell'), 'Bash');
+  assert.equal(toClaudeTool('unknown-tool'), null);
+});
 
 test('claudeInput: real OpenCode field name is path; null when a file tool has no path', () => {
   const w = claudeInput({ event: 'PreToolUse', tool: 'write', cwd: '/r', input: { path: 'design/a.md', content: 'hi' } });
@@ -21,6 +27,12 @@ test('claudeInput: real OpenCode field name is path; null when a file tool has n
 
 test('editTargets: accepts the real path field too', () => {
   assert.deepEqual(editTargets({ tool: 'write', input: { path: 'a.md' } }), ['a.md']);
+});
+
+test('callKey: live tool events carry id (and messageID), never callID', () => {
+  assert.equal(callKey({ id: 'tc_1', messageID: 'msg_1' }), 'tc_1');
+  assert.equal(callKey({ messageID: 'msg_1' }), 'msg_1');
+  assert.equal(callKey({}), '');
 });
 
 test('parseHookSettings: 15 registrations with per-event counts', () => {

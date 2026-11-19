@@ -8,6 +8,11 @@
   "permissions": [
     {
       "action": "shell",
+      "resource": "*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
       "resource": "dir *",
       "effect": "allow"
     },
@@ -810,11 +815,6 @@
       "action": "shell",
       "resource": "*>.env*",
       "effect": "deny"
-    },
-    {
-      "action": "shell",
-      "resource": "*",
-      "effect": "ask"
     }
   ]
 }

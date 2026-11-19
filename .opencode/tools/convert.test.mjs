@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parseSettings, convertPermissions, extractClaudeImports, generateAgentsMd, convertAgent, commandShims, skillIds } from './convert.mjs';
+import { parseSettings, convertPermissions, renderOpencodeJson, extractClaudeImports, generateAgentsMd, convertAgent, commandShims, skillIds } from './convert.mjs';
+
 
 const settings = {
   permissions: {
@@ -63,6 +64,18 @@ test('unknown rule prefix throws', () => {
     () => convertPermissions({ permissions: { allow: [], deny: ['Weird(x)'] } }),
     /Weird\(x\)/,
   );
+});
+
+test('renderOpencodeJson: V2 is last-match-wins, so the catch-all ask comes first and deny stays last', () => {
+  const cfg = JSON.parse(renderOpencodeJson([
+    { action: 'shell', resource: 'git status *', effect: 'allow' },
+    { action: 'shell', resource: 'rm -rf *', effect: 'deny' },
+  ]));
+  const p = cfg.permissions;
+  assert.deepEqual(p[0], { action: 'shell', resource: '*', effect: 'ask' });
+  assert.equal(p.at(-1).effect, 'deny');
+  assert.ok(p.findIndex(r => r.effect === 'allow') < p.findIndex(r => r.effect === 'deny'));
+  assert.equal(p.filter(r => r.resource === '*' && r.effect === 'ask').length, 1);
 });
 
 test('parseSettings reads the real settings.json', () => {

@@ -14,6 +14,7 @@ import {
   findBash,
   runHook,
   writeTranscript,
+  callKey,
 } from './contract.mjs';
 
 export default Plugin.define({
@@ -105,9 +106,10 @@ export default Plugin.define({
           note(reg, out);
         }
       } else if (event.tool === 'subagent' || event.tool === 'task') {
-        stashed.set(event.callID, { prompt: event.input?.prompt ?? event.input?.task ?? '', agent: event.input?.agent ?? event.input?.subagent_type ?? '' });
+        const key = callKey(event) || `sub-${Date.now()}`;
+        stashed.set(key, { prompt: event.input?.prompt ?? event.input?.task ?? '', agent: event.input?.agent ?? event.input?.subagent_type ?? '' });
         for (const reg of regs.filter(r => r.event === 'SubagentStart')) {
-          void run(reg, { hook_event_name: 'SubagentStart', session_id: event.sessionID, cwd: root, agent_type: event.input?.agent ?? event.input?.subagent_type ?? '', agent_id: event.callID });
+          void run(reg, { hook_event_name: 'SubagentStart', session_id: event.sessionID, cwd: root, agent_type: event.input?.agent ?? event.input?.subagent_type ?? '', agent_id: key });
         }
       }
     });
@@ -124,17 +126,18 @@ export default Plugin.define({
           note(reg, out);
         }
       } else if (event.tool === 'subagent' || event.tool === 'task') {
-        const s = stashed.get(event.callID) ?? { prompt: '', agent: '' };
-        stashed.delete(event.callID);
+        const key = callKey(event) || `sub-${Date.now()}`;
+        const s = stashed.get(key) ?? { prompt: '', agent: '' };
+        stashed.delete(key);
         const last = resultText(event.result);
-        const transcript = writeTranscript(stateDir, event.callID, s.prompt, last);
+        const transcript = writeTranscript(stateDir, key, s.prompt, last);
         for (const reg of regs.filter(r => r.event === 'SubagentStop')) {
           const out = await decide(reg, {
             hook_event_name: 'SubagentStop',
             session_id: event.sessionID,
             cwd: root,
             agent_type: s.agent,
-            agent_id: event.callID,
+            agent_id: key,
             agent_transcript_path: transcript,
             last_assistant_message: last,
           });

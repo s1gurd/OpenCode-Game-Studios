@@ -38,7 +38,9 @@ export function renderOpencodeJson(rules) {
   const config = {
     $schema: 'https://opencode.ai/config.json',
     instructions: instructionsFromClaudeMd(),
-    permissions: [...rules, { action: 'shell', resource: '*', effect: 'ask' }],
+    // V2 resolves permissions last-match-wins: broad catch-all first, then allows,
+    // so the deny rules (last) can never be shadowed by the catch-all.
+    permissions: [{ action: 'shell', resource: '*', effect: 'ask' }, ...rules],
   };
   return JSON.stringify(config, null, 2) + '\n';
 }

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
-const TOOL_NAMES = { bash: 'Bash', write: 'Write', edit: 'Edit', patch: 'Edit', read: 'Read' };
+const TOOL_NAMES = { bash: 'Bash', shell: 'Bash', write: 'Write', edit: 'Edit', patch: 'Edit', read: 'Read' };
 
 export function parseHookSettings(settings) {
   const regs = [];
@@ -144,6 +144,10 @@ export async function runHook({ bash, script, root, input, timeoutMs, async: isA
     stderr: res.stderr?.toString() ?? '',
     timedOut: false,
   };
+}
+
+export function callKey(event) {
+  return String(event.id ?? event.messageID ?? '');
 }
 
 export function writeTranscript(stateDir, callID, prompt, lastAssistant) {
