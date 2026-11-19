@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync as nodeSpawnSync } from 'node:child_process';
 import {
   parseHookSettings, toClaudeTool, matchReg, normalizePath, claudeInput,
   editTargets, parseHookResult, findBash, runHook, writeTranscript,
@@ -136,6 +137,23 @@ test('parseHookResult: plain stdout is context, garbage non-zero is skip', () =>
 test('findBash finds bash on this machine (repo requires it)', () => {
   assert.ok(findBash());
 });
+
+test('findBash: prefers bash >= 4 over ancient msys 3.1', () => {
+  const probe = cand => (/mingw/i.test(cand) ? 'GNU bash, version 3.1.23(1)-release' : 'GNU bash, version 5.2.15(1)-release');
+  const picked = findBash(`C:\\MinGW\\msys\\1.0\\bin;C:\\Program Files\\Git\\bin`, 'win32', probe);
+  assert.equal(picked, path.join('C:\\Program Files\\Git\\bin', 'bash.exe'));
+});
+
+test('findBash: default probe rejects this machine MinGW 3.1 if present', () => {
+  const found = findBash();
+  const out = spawnSyncVersion(found);
+  assert.match(out, /version [456]\./, `live bash must be >=4, got: ${out}`);
+});
+
+function spawnSyncVersion(exe) {
+  const r = nodeSpawnSync(exe, ['--version'], { encoding: 'utf8', windowsHide: true });
+  return r.stdout ?? '';
+}
 
 test('runHook: pipes stdin JSON, captures stdout and exit 2', async () => {
   const bash = findBash();

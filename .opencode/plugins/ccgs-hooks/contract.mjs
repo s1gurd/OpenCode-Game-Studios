@@ -90,14 +90,36 @@ export function parseHookResult({ code, stdout, stderr }) {
   return { decision: 'allow' };
 }
 
-export function findBash(envPath = process.env.PATH, platform = process.platform) {
+export function findBash(envPath = process.env.PATH, platform = process.platform, probe = versionProbe) {
   const exe = platform === 'win32' ? 'bash.exe' : 'bash';
-  for (const dir of (envPath ?? '').split(path.delimiter)) {
-    if (!dir) continue;
-    const probe = path.join(dir, exe);
-    if (fs.existsSync(probe)) return probe;
+  const candidates = [];
+  for (const dir of (envPath ?? '').split(path.delimiter).filter(Boolean)) {
+    const direct = path.join(dir, exe);
+    if (fs.existsSync(direct)) candidates.push(direct);
+    // Git for Windows ships bash.exe in <GitRoot>\bin, often absent from PATH
+    // while <GitRoot>\cmd (git.exe) is: derive it from wherever git lives.
+    const git = path.join(dir, platform === 'win32' ? 'git.exe' : 'git');
+    if (fs.existsSync(git)) {
+      const root = path.dirname(path.dirname(git));
+      for (const sub of [path.join('bin', exe), path.join('usr', 'bin', exe)]) {
+        const derived = path.join(root, sub);
+        if (fs.existsSync(derived) && !candidates.includes(derived)) candidates.push(derived);
+      }
+    }
+  }
+  for (const cand of candidates) {
+    const major = Number(/version\s+(\d+)/.exec(probe(cand) ?? '')?.[1] ?? 0);
+    if (major >= 4) return cand;
   }
   return null;
+}
+
+function versionProbe(exe) {
+  try {
+    return spawnSync(exe, ['--version'], { encoding: 'utf8', windowsHide: true }).stdout ?? '';
+  } catch {
+    return '';
+  }
 }
 
 export async function runHook({ bash, script, root, input, timeoutMs, async: isAsync }) {
