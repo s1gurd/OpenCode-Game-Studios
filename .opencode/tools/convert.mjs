@@ -84,6 +84,70 @@ function writeAgentsMd() {
   console.log('AGENTS.md written');
 }
 
+export const BUILTIN_ACTIONS = ['read', 'edit', 'glob', 'grep', 'shell', 'webfetch', 'websearch', 'skill', 'subagent', 'question'];
+
+export const CLAUDE_TOOL_TO_ACTIONS = {
+  Read: ['read'],
+  Write: ['edit'],
+  Edit: ['edit'],
+  Glob: ['glob'],
+  Grep: ['grep'],
+  Bash: ['shell'],
+  WebSearch: ['webfetch', 'websearch'],
+  WebFetch: ['webfetch'],
+  Agent: ['subagent'],
+  Task: ['subagent'],
+  Skill: ['skill'],
+  Question: ['question'],
+  Todo: [],
+};
+
+export function convertAgent(raw) {
+  const m = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n/.exec(raw);
+  if (!m) throw new Error('agent file has no frontmatter');
+  const fm = {};
+  let lastKey;
+  for (const line of m[1].split(/\r?\n/)) {
+    const kv = /^([A-Za-z-]+):\s*(.*)$/.exec(line);
+    if (kv) {
+      lastKey = kv[1];
+      fm[lastKey] = kv[2].trim();
+    } else if (lastKey && line.trim()) {
+      fm[lastKey] += ' ' + line.trim();
+    }
+  }
+  const body = raw.slice(m[0].length);
+  const list = s => (s ?? '').replace(/^\[|\]$/g, '').split(',').map(x => x.trim()).filter(Boolean);
+  const allowed = new Set();
+  for (const key of ['tools', 'disallowedTools']) {
+    for (const t of list(fm[key])) {
+      const acts = CLAUDE_TOOL_TO_ACTIONS[t];
+      if (!acts) throw new Error(`Unknown Claude tool "${t}" in ${fm.name ?? '?'}`);
+      for (const a of acts) (key === 'tools' ? allowed.add(a) : allowed.delete(a));
+    }
+  }
+  const rules = BUILTIN_ACTIONS.map(action => ({
+    action,
+    resource: '*',
+    effect: allowed.has(action) ? 'allow' : 'deny',
+  }));
+  for (const s of list(fm.skills)) rules.push({ action: 'skill', resource: s, effect: 'allow' });
+  const desc = JSON.stringify((fm.description ?? 'studio subagent').replace(/^"|"$/g, ''));
+  const yaml = rules
+    .map(r => `  - action: ${r.action}\n    resource: ${JSON.stringify(r.resource)}\n    effect: ${r.effect}`)
+    .join('\n');
+  return `---\ndescription: ${desc}\nmode: subagent\npermissions:\n${yaml}\n---\n\n${body}`;
+}
+
+function writeAgents() {
+  fs.mkdirSync('.opencode/agents', { recursive: true });
+  const files = fs.readdirSync('.claude/agents').filter(f => f.endsWith('.md'));
+  for (const f of files) {
+    fs.writeFileSync('.opencode/agents/' + f, convertAgent(fs.readFileSync('.claude/agents/' + f, 'utf8')));
+  }
+  console.log(`agents: ${files.length} written`);
+}
+
 function writeOpencodeJson() {
   const rules = convertPermissions(parseSettings());
   fs.writeFileSync('opencode.json', renderOpencodeJson(rules));

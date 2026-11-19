@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parseSettings, convertPermissions, extractClaudeImports, generateAgentsMd } from './convert.mjs';
+import { parseSettings, convertPermissions, extractClaudeImports, generateAgentsMd, convertAgent } from './convert.mjs';
 
 const settings = {
   permissions: {
@@ -91,4 +91,53 @@ test('generateAgentsMd drops import lines and appends port notes', () => {
   assert.ok(!out.includes('@.claude/'));
   assert.ok(out.includes('Header\nBody'));
   assert.ok(out.includes('## OpenCode Port Notes'));
+});
+
+const gd = convertAgent(fs.readFileSync('.claude/agents/game-designer.md', 'utf8'));
+
+test('convertAgent: mode subagent, no model field, Claude keys stripped', () => {
+  const fm = gd.split(/^---\s*$/m)[1];
+  assert.match(fm, /mode: subagent/);
+  assert.ok(!/^model:/m.test(fm), 'no model field');
+  assert.ok(!/disallowedTools|maxTurns|memory:/m.test(fm));
+  assert.match(fm, /description: "Mechanical and systems design/);
+});
+
+test('convertAgent: permission matrix matches the Claude tools list', () => {
+  for (const action of ['read', 'edit', 'glob', 'grep', 'webfetch', 'websearch']) {
+    assert.ok(
+      new RegExp(`- action: ${action}\\n +resource: "\\*"\\n +effect: allow`).test(gd),
+      `${action} must be allow`,
+    );
+  }
+  for (const action of ['shell', 'subagent', 'question', 'skill']) {
+    assert.ok(
+      new RegExp(`- action: ${action}\\n +resource: "\\*"\\n +effect: deny`).test(gd),
+      `${action} must be deny`,
+    );
+  }
+});
+
+test('convertAgent: listed skills allowed after the catch-all deny', () => {
+  const catchAll = gd.search(/- action: skill\n +resource: "\*"\n +effect: deny/);
+  const specific = gd.search(/- action: skill\n +resource: "balance-check"\n +effect: allow/);
+  assert.ok(catchAll >= 0 && specific > catchAll, 'last-match-wins ordering');
+});
+
+test('convertAgent: opus/sonnet aliases never become a model field', () => {
+  const producer = convertAgent(fs.readFileSync('.claude/agents/producer.md', 'utf8'));
+  assert.ok(!/^model:/m.test(producer));
+});
+
+test('convertAgent: body preserved byte-identically', () => {
+  const raw = fs.readFileSync('.claude/agents/qa-lead.md', 'utf8');
+  const body = raw.slice(raw.indexOf('\n', raw.indexOf('---', 3) + 3) + 1);
+  assert.ok(convertAgent(raw).endsWith(body));
+});
+
+test('convertAgent: unknown Claude tool throws', () => {
+  assert.throws(
+    () => convertAgent('---\nname: x\ndescription: "d"\ntools: Read, NotebookEdit\n---\nbody\n'),
+    /NotebookEdit/,
+  );
 });
