@@ -1,7 +1,7 @@
-// ccgs-hooks adapter contract: turns OpenCode V2 tool/session events into the
+﻿// ccgs-hooks adapter contract: turns OpenCode V2 tool/session events into the
 // Claude Code hook contract (stdin JSON + exit codes + stdout) understood by
 // .claude/hooks/*.sh, and turns their answers back into OpenCode decisions.
-// Pure functions only — plugin wiring lives in index.ts.
+// Pure functions only - plugin wiring lives in index.ts.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
@@ -37,7 +37,7 @@ export function matchReg(reg, claudeTool) {
 }
 
 export function normalizePath(p, repoDir) {
-  const norm = p.replace(/\\/g, '/');
+  const norm = String(p ?? '').replace(/\\/g, '/');
   const root = repoDir.replace(/\\/g, '/').replace(/\/+$/, '');
   if (norm.toLowerCase() === root.toLowerCase()) return '';
   if (norm.toLowerCase().startsWith(`${root.toLowerCase()}/`)) return norm.slice(root.length + 1);
@@ -46,22 +46,22 @@ export function normalizePath(p, repoDir) {
 
 export function claudeInput({ event, tool, input, sessionID, cwd }) {
   const tool_name = toClaudeTool(tool);
-  let tool_input = {};
-  if (tool_name === 'Bash') tool_input = { command: input.command };
-  else if (tool_name === 'Write')
-    tool_input = { file_path: normalizePath(input.filePath, cwd), content: input.content };
-  else if (tool_name === 'Edit')
-    tool_input = {
-      file_path: normalizePath(input.filePath, cwd),
-      old_string: input.oldString,
-      new_string: input.newString,
-    };
-  else if (tool_name === 'Read') tool_input = { file_path: normalizePath(input.filePath, cwd) };
+  if (tool_name === 'Bash') {
+    return { hook_event_name: event, session_id: sessionID ?? '', cwd, tool_name, tool_input: { command: input.command } };
+  }
+  const p = input.filePath ?? input.path;
+  if (!p) return null;
+  const tool_input = { file_path: normalizePath(p, cwd) };
+  if (tool_name === 'Write') tool_input.content = input.content;
+  else if (tool_name === 'Edit') {
+    tool_input.old_string = input.oldString;
+    tool_input.new_string = input.newString;
+  }
   return { hook_event_name: event, session_id: sessionID ?? '', cwd, tool_name, tool_input };
 }
 
 export function editTargets({ tool, input }) {
-  if (tool === 'write' || tool === 'edit') return [input.filePath];
+  if (tool === 'write' || tool === 'edit') return [input.filePath ?? input.path].filter(Boolean);
   const paths = [];
   for (const m of input.patch?.matchAll(/^\*\*\* (?:Update|Add|Delete) File: (.+)$/gm) ?? []) {
     paths.push(m[1].trim());

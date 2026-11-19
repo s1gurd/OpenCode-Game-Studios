@@ -10,6 +10,19 @@ import {
 } from './contract.mjs';
 import { parseSettings } from '../../tools/convert.mjs';
 
+test('claudeInput: real OpenCode field name is path; null when a file tool has no path', () => {
+  const w = claudeInput({ event: 'PreToolUse', tool: 'write', cwd: '/r', input: { path: 'design/a.md', content: 'hi' } });
+  assert.equal(w.tool_input.file_path, 'design/a.md');
+  const r = claudeInput({ event: 'PreToolUse', tool: 'read', cwd: '/r', input: { path: 'design/b.md' } });
+  assert.equal(r.tool_input.file_path, 'design/b.md');
+  assert.equal(claudeInput({ event: 'PreToolUse', tool: 'write', cwd: '/r', input: { content: 'hi' } }), null);
+  assert.equal(claudeInput({ event: 'PreToolUse', tool: 'read', cwd: '/r', input: {} }), null);
+});
+
+test('editTargets: accepts the real path field too', () => {
+  assert.deepEqual(editTargets({ tool: 'write', input: { path: 'a.md' } }), ['a.md']);
+});
+
 test('parseHookSettings: 15 registrations with per-event counts', () => {
   const regs = parseHookSettings(parseSettings());
   assert.equal(regs.length, 15);

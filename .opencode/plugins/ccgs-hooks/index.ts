@@ -95,6 +95,7 @@ export default Plugin.define({
           return;
         }
         const input = claudeInput({ event: 'PreToolUse', tool: event.tool, input: event.input, sessionID: event.sessionID, cwd: root });
+        if (!input) return;
         for (const reg of matching) {
           const out = await decide(reg, input);
           if (out.decision === 'block') {
@@ -116,6 +117,7 @@ export default Plugin.define({
       const claude = toClaudeTool(event.tool);
       if (claude === 'Write' || claude === 'Edit') {
         const input = claudeInput({ event: 'PostToolUse', tool: event.tool, input: event.input, sessionID: event.sessionID, cwd: root });
+        if (!input) return;
         for (const reg of regs.filter(r => r.event === 'PostToolUse' && matchReg(r, claude))) {
           const out = await decide(reg, input);
           if (out.additionalContext) log(`[ccgs-hooks ${reg.script}] ${out.additionalContext}`.slice(0, 2000));
